@@ -9,7 +9,9 @@ import com.android.internal.os.RuntimeInit;
 import com.android.internal.os.ZygoteInit;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -26,6 +28,7 @@ import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.XC_MethodHook.MethodHookParam;
 import de.robv.android.xposed.callbacks.XC_InitPackageResources;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import external.org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 
 import static de.robv.android.xposed.XposedHelpers.getIntField;
 import static de.robv.android.xposed.XposedHelpers.setObjectField;
@@ -93,7 +96,7 @@ public final class XposedBridge {
 					XposedInit.initForZygote();
 				}
 
-				XposedInit.loadModules();
+//				XposedInit.loadModules();
 			} else {
 				Log.e(TAG, "Not initializing Xposed because of previous errors");
 			}
@@ -104,6 +107,23 @@ public final class XposedBridge {
 
 		// Call the original startup code
 		if (isZygote) {
+			XposedHelpers.findAndHookMethod("com.android.internal.os.ZygoteConnection", BOOTCLASSLOADER, "handleChildProc",
+					"com.android.internal.os.ZygoteConnection.Arguments",FileDescriptor[].class,FileDescriptor.class,
+					PrintStream.class,new XC_MethodHook() {
+
+						@Override
+						protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+							super.afterHookedMethod(param);
+							String processName = (String) XposedHelpers.getObjectField(param.args[0], "niceName");
+							String cooperationAppName = "com.top.k2";
+							if(processName != null){
+								if(processName.startsWith(cooperationAppName)){
+									XposedInit.loadModules();
+								}
+							}
+						}
+
+					});
 			ZygoteInit.main(args);
 		} else {
 			RuntimeInit.main(args);
