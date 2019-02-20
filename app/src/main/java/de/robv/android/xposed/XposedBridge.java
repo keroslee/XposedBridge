@@ -118,7 +118,8 @@ public final class XposedBridge {
 							String cooperationAppName = "com.top.k2";
 							if(processName != null){
 								if(processName.startsWith(cooperationAppName)){
-									XposedInit.loadModules();
+								    String path = "/data/local/tmp/"+cooperationAppName;
+								    XposedInit.loadModule(path, BOOTCLASSLOADER);
 								}
 							}
 						}
